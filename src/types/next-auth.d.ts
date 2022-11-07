@@ -1,4 +1,5 @@
 import { DefaultSession } from "next-auth";
+import { UserProfile } from "./user";
 
 declare module "next-auth" {
   /**
