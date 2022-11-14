@@ -17,6 +17,8 @@ export const serverSchema = z.object({
   ),
   DISCORD_CLIENT_ID: z.string(),
   DISCORD_CLIENT_SECRET: z.string(),
+  GITHUB_CLIENT_ID: z.string(),
+  GITHUB_CLIENT_SECRET: z.string(),
   TRN_API_KEY: z.string(),
   TRN_API_URL: z.string(),
   MONGODB_URI: z.string(),

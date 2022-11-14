@@ -1,35 +1,13 @@
-import { router, publicProcedure, protectedProcedure } from "../../trpc";
+import { router, protectedProcedure } from "../../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { User } from "../../../../types/user";
 
 export const usersRouter = router({
-    createUser: publicProcedure
-        .input(z.object({
-            username: z.string(),
-            profile: z.object({
-                steamUsername: z.string(),
-            }),
-        }).required())
-        .mutation(async ({ ctx, input }) => {
-            try {
-                await ctx.db.collection("users").insertOne({ ...input, createdAt: new Date() });
-                return {
-                    message: "User created successfully",
-                };
-            } catch( err ) {
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Failed to create user",
-                });
-            }
-        }),
     deleteUser: protectedProcedure
-        .input(z.object({
-            username: z.string(),
-        }).required())
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ ctx }) => {
             try {
-                const result = await ctx.db.collection("users").deleteOne({ username: input.username });
+                const result = await ctx.db.collection<User>("users").deleteOne({ username: ctx.session.user.name! });
                 console.log(result);
                 return {
                     message: "User deleted successfully",
@@ -42,12 +20,9 @@ export const usersRouter = router({
             }
         }),
     getUserProfile: protectedProcedure
-        .input(z.object({
-            username: z.string(),
-        }).required())
-        .query(async ({ ctx, input }) => {
+        .query(async ({ ctx }) => {
             try {
-                const profile = await ctx.db.collection("users").findOne({ username: input.username }, { projection: { profile: 1 } });
+                const profile = await ctx.db.collection<User>("users").findOne({ username: ctx.session.user.name! }, { projection: { profile: 1 } });
                 if( !profile ) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
@@ -60,6 +35,26 @@ export const usersRouter = router({
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: "Failed to get user profile",
+                });
+            }
+        }),
+    upsertUserProfile: protectedProcedure
+        .input(z.object({
+            profile: z.object({
+                steamUsername: z.string(),
+            }),
+        }).required())
+        .mutation(async ({ ctx, input }) => {
+            try {
+                const username = ctx.session.user.name!;
+                await ctx.db.collection<User>("users").updateOne({ username }, { $set: { username, profile: input.profile } }, { upsert: true });
+                return {
+                    message: "User profile updated successfully",
+                };
+            } catch( err ) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to update user profile",
                 });
             }
         }),

@@ -4,3 +4,10 @@ export type Stats = {
         percentile: number;
     };
 }
+
+export type StatInfo = {
+    count: number;
+    pages: number;
+    next: number | null;
+    prev: number | null;
+}
