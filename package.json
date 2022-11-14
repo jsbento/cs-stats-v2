@@ -10,6 +10,8 @@
     "ngrok": "ngrok http 3000"
   },
   "dependencies": {
+    "@mantine/core": "^5.7.2",
+    "@radix-ui/react-icons": "^1.1.1",
     "@tanstack/react-query": "^4.10.0",
     "@trpc/client": "10.0.0-rc.0",
     "@trpc/next": "10.0.0-rc.0",
@@ -21,6 +23,7 @@
     "ngrok": "^4.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-icons": "^4.6.0",
     "superjson": "1.9.1",
     "zod": "^3.18.0"
   },
