@@ -1,5 +1,6 @@
 import React, { MouseEventHandler, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/router";
 import Link from "next/link";
 import Image from "next/image";
 import { Alert, Modal } from "@mantine/core";
@@ -7,6 +8,7 @@ import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import { HiLogout } from "react-icons/hi";
 
 export const NavBar: React.FC = () => {
+    const router = useRouter();
     const { data } = useSession();
 
     const [ opened, setOpened ] = useState<boolean>( false );
@@ -23,7 +25,7 @@ export const NavBar: React.FC = () => {
                 </Alert>
                 <button
                     className="mt-5 w-full rounded-md border-2 border-gray-border bg-gray-light-d px-2 py-1 text-sm font-semibold text-white drop-shadow-md transition-colors duration-200 hover:bg-gray-dark"
-                    onClick={ () => signOut() }
+                    onClick={ () => signOut({ redirect: true, callbackUrl: "/" }) }
                 >
                     Sign Out
                 </button>
@@ -47,10 +49,15 @@ export const NavBar: React.FC = () => {
                 { data ? (
                     <div className="z-20 hidden items-center gap-4 sm:flex">
                         <div className="flex overflow-x-hidden rounded-md border-2 border-[#30303F] bg-[#1D1D27] drop-shadow-md">
-                            <NavbarButton className="border-r-2">Profile</NavbarButton>
                             <NavbarButton
-                                onClick={ () => setOpened( true ) }
+                                className="border-r-2"
+                                onClick={ () => router.push( "/profile" ) }
+                            >
+                                Profile
+                            </NavbarButton>
+                            <NavbarButton
                                 className="flex items-center"
+                                onClick={ () => setOpened( true ) }
                             >
                                 <HiLogout />
                             </NavbarButton>
@@ -73,7 +80,7 @@ export const NavBar: React.FC = () => {
                     <div className="z-20 hidden items-center gap-4 sm:flex">
                         <div className="flex overflow-x-hidden rounded-md border-2 border-[#30303F] bg-[#1D1D27] drop-shadow-md">
                             <NavbarButton
-                                onClick={ () => signIn( "discord" ) }
+                                onClick={ () => signIn() }
                                 className="flex items-center"
                             >
                                 Sign In
