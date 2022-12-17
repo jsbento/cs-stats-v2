@@ -5,6 +5,12 @@ export type Stats = {
     };
 }
 
+export type ServerStats = {
+    username: string;
+    stats: Stats;
+    timestamp: number;
+}
+
 export type StatInfo = {
     count: number;
     pages: number;

@@ -1,7 +1,7 @@
 import { router, publicProcedure, protectedProcedure } from "../../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { StatInfo, Stats } from "../../../../types/stats";
+import { ServerStats, StatInfo, Stats } from "../../../../types/stats";
 import { calculateBestFit } from "../../../../utils/stats";
 import { env } from "../../../../env/server.mjs";
 
@@ -29,7 +29,7 @@ export const statsRouter = router({
                     };
                 }
 
-                await ctx.db.collection("stats").insertOne({
+                await ctx.db.collection<ServerStats>("stats").insertOne({
                     username: ctx.session.user.userProfile!.steamUsername,
                     stats,
                     timestamp: Date.now()
@@ -60,7 +60,7 @@ export const statsRouter = router({
                 }
             }
             try {
-                const stats = await ctx.db.collection("stats").find(filter, {
+                const stats = await ctx.db.collection<ServerStats>("stats").find(filter, {
                     projection: {
                         data: {
                             [ input.stat ]: { value: 1 }
@@ -75,8 +75,8 @@ export const statsRouter = router({
                     });
                 } else {
                     const statData: number[] = stats.map( stat => {
-                        if ( input.stat === 'timePlayed' ) return stat.data[input.stat].value / 3600;
-                        return stat.data[input.stat].value;
+                        if ( input.stat === 'timePlayed' ) return stat.stats[input.stat]!.value / 3600;
+                        return stat.stats[input.stat]!.value;
                     })
                     const timestamps: number[] = stats.map( stat => ( stat.timestamp - stats[0]!.timestamp ) / DAY_IN_MS );
                     const bestFit = calculateBestFit(timestamps, statData);
@@ -99,7 +99,7 @@ export const statsRouter = router({
         }).required())
         .query(async ({ ctx, input }) => {
             try {
-                const stats = (await ctx.db.collection("stats").find({
+                const stats = (await ctx.db.collection<ServerStats>("stats").find({
                     username: ctx.session.user.userProfile!.steamUsername,
                 }).toArray()).reverse();
 
@@ -110,7 +110,7 @@ export const statsRouter = router({
                     });
                 }
     
-                const page = input.page || 1;
+                const page: number = input.page || 1;
                 const pages: number = Math.ceil(stats.length / RESULTS_PER_PAGE);
                 const statInfo: StatInfo = {
                     count: stats.length,
@@ -120,6 +120,7 @@ export const statsRouter = router({
                 }
                 const startIdx = (page - 1) * RESULTS_PER_PAGE;
                 const endIdx = page * RESULTS_PER_PAGE;
+
                 return {
                     info: statInfo,
                     stats: stats.slice(startIdx, endIdx),
@@ -131,5 +132,46 @@ export const statsRouter = router({
                 });
             }
         }),
+    fetchCompositeStats: protectedProcedure
+        .input(z.object({
+            statA: z.string(),
+            statB: z.string(),
+        }).required())
+        .query(async ({ ctx, input }) => {
+            try {
+                const stats = await ctx.db.collection<ServerStats>("stats").find({
+                    username: ctx.session.user.userProfile!.steamUsername,
+                }, {
+                    projection: {
+                        data: {
+                            [ input.statA ]: { value: 1 },
+                            [ input.statB ]: { value: 1 },
+                        },
+                    },
+                }).toArray();
+                if( !stats ) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "No stats found"
+                    });
+                } else {
+                    const statAData: number[] = stats.map( stat => {
+                        return input.statA === 'timePlayed' ? stat.stats[input.statA]!.value / 3600 : stat.stats[input.statA]!.value;
+                    });
+                    const statBData: number[] = stats.map( stat => {
+                        return input.statB === 'timePlayed' ? stat.stats[input.statB]!.value / 3600 : stat.stats[input.statB]!.value;
+                    });
 
+                    return {
+                        statAData,
+                        statBData,
+                    }
+                }
+            } catch( err: any ) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: err.message
+                });
+            }
+        }),
 })
